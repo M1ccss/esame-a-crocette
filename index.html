@@ -16,6 +16,15 @@
   </style>
 </head>
 <body>
+
+<div id="auth">
+  <h2>Accesso al quiz</h2>
+  <input type="text" id="accessKey" placeholder="Inserisci la tua chiave" />
+  <button onclick="validateKey()">Accedi</button>
+  <p id="authStatus"></p>
+</div>
+<div id="quizContainer" class="hidden">
+
   <h1>Quiz finale</h1>
   <div id="start">
     <p>Seleziona una modalità:</p>
@@ -2908,5 +2917,49 @@ function reviewAnswers() {
   <button class="btn" onclick="reviewAnswers()">Rivedi</button>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  const supabase = createClient(
+    'https://cdmlsuuupeyhtbviohls.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkbWxzdXV1cGV5aHRidmlvaGxzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4MTM3OTksImV4cCI6MjA2NTM4OTc5OX0.2mhjWao_V42o2nFb93ECMzAd_lurXZvbfkpnOeV7E_I'
+  );
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const storedKey = localStorage.getItem('quiz_key');
+    if (storedKey) {
+      const { data, error } = await supabase
+        .from('access_keys')
+        .select('*')
+        .eq('key', storedKey)
+        .eq('used', true)
+        .maybeSingle();
+      if (data && !error) {
+        document.getElementById('auth').classList.add('hidden');
+        document.getElementById('quizContainer').classList.remove('hidden');
+      }
+    }
+  });
+
+  async function validateKey() {
+    const key = document.getElementById('accessKey').value.trim();
+    const { data, error } = await supabase
+      .from('access_keys')
+      .select('*')
+      .eq('key', key)
+      .eq('used', false)
+      .maybeSingle();
+    if (error || !data) {
+      document.getElementById('authStatus').innerText = 'Chiave non valida o già usata.';
+      return;
+    }
+    localStorage.setItem('quiz_key', key);
+    await supabase.from('access_keys').update({ used: true }).eq('id', data.id);
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('quizContainer').classList.remove('hidden');
+  }
+</script>
+
+</div>
 </body>
 </html>
